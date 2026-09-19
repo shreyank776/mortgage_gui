@@ -16,13 +16,11 @@ fields = (
     "Total Paid:",
 )
 
-#This prints my name, program, date
 def print_me_first():
-    name_info = "Name: Shreyank Kamatala - CNET-142"
-    lab_info = "Lab: Lab 8 - Mortgage GUI"
+    name_info = "Name: Shreyank Kamatala"
     prog_info = "Program: mortgage_gui.py"
     date_info = "Date: " + datetime.now().strftime("%b-%d-%Y %a (%I:%M:%S %p)")
-    return f"{name_info}\n{lab_info}\n{prog_info}\n{date_info}"
+    return f"{name_info}\n{prog_info}\n{date_info}"
 
 #This shows an error popup for invalid inputs
 def msgBox(msgText):
