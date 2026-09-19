@@ -1,0 +1,216 @@
+from datetime import datetime
+import os
+import sys
+import tkinter as tk
+import csv
+from tkinter import *
+from tkinter import messagebox as msg
+import matplotlib.pyplot as plt
+
+fields = (
+    "Loan Amount:",
+    "Interest Rate %:",
+    "Loan Term (Years):",
+    "Monthly Payment:",
+    "Total Interest Paid:",
+    "Total Paid:",
+)
+
+#This prints my name, program, date
+def print_me_first():
+    name_info = "Name: Shreyank Kamatala - CNET-142"
+    lab_info = "Lab: Lab 8 - Mortgage GUI"
+    prog_info = "Program: mortgage_gui.py"
+    date_info = "Date: " + datetime.now().strftime("%b-%d-%Y %a (%I:%M:%S %p)")
+    return f"{name_info}\n{lab_info}\n{prog_info}\n{date_info}"
+
+#This shows an error popup for invalid inputs
+def msgBox(msgText):
+    msg.showerror("Error invalid input", msgText)
+
+def update_field(entry, value):
+    entry.config(state="normal")
+    entry.delete(0, END)
+    entry.insert(0, value)
+    entry.config(state="readonly")
+
+#This checks inputs and calculates the mortgage payments
+def calculate(entries):
+    try:
+        loan = float(entries["Loan Amount:"].get())
+        rate = float(entries["Interest Rate %:"].get())
+        term = float(entries["Loan Term (Years):"].get())
+
+        if loan <= 0 or rate <= 0 or term <= 0:
+            msgBox("Must be positive number > 0")
+            return
+
+        r = (rate / 100) / 12
+        n = term * 12
+
+        monthly = loan * (r * (1 + r) ** n) / ((1 + r) ** n - 1)
+        total_paid = monthly * n
+        total_interest = total_paid - loan
+
+        update_field(entries["Monthly Payment:"], f"${monthly:,.2f}")
+        update_field(entries["Total Interest Paid:"], f"${total_interest:,.2f}")
+        update_field(entries["Total Paid:"], f"${total_paid:,.2f}")
+
+    except ValueError:
+        msgBox("Must be positive number > 0")
+
+#This reads csv data and plots the mortgage rate line chart
+def plot_chart():
+    csv_filename = "mortgage_data.csv"
+    if not os.path.exists(csv_filename):
+        sample_data = [
+            ("1971", 7.54),
+            ("1975", 8.50),
+            ("1978", 9.20),
+            ("1979", 11.20),
+            ("1981", 16.63),
+            ("1983", 14.96),
+            ("1987", 11.60),
+            ("1991", 9.60),
+            ("1995", 8.12),
+            ("1998", 6.90),
+            ("1999", 7.50),
+            ("2003", 6.64),
+            ("2005", 6.00),
+            ("2007", 6.40),
+            ("2011", 4.70),
+            ("2012", 3.85),
+            ("2015", 3.85),
+            ("2016", 3.65),
+            ("2019", 4.13),
+            ("2021", 3.10),
+            ("2023", 7.00),
+            ("2026", 6.40),
+        ]
+        with open(csv_filename, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Year", "Rate"])
+            writer.writerows(sample_data)
+
+    years, rates = [], []
+    with open(csv_filename, "r", encoding="utf-8") as file:
+        reader = csv.reader(file)
+        next(reader, None)
+        for row in reader:
+            if row:
+                years.append(int(row[0]))
+                rates.append(float(row[1]))
+
+    data = sorted(zip(years, rates))
+    years, rates = zip(*data)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(years, rates, label="Mortgage Rate")
+    plt.title("Historical Mortgage Rate")
+    plt.ylabel("Rate %")
+    plt.legend(loc="upper right")
+
+    annotation_indices = [0, 1, 3, 5, 6, 7, 8, 10, 11, 13, 14, 16, 18, 20]
+    for idx in annotation_indices:
+        if idx < len(years):
+            x, y = years[idx], rates[idx]
+            plt.plot(x, y, "bo", markersize=4)
+            plt.annotate(
+                f"{y:.2f}%",
+                (x, y),
+                textcoords="offset points",
+                xytext=(0, 8),
+                ha="center",
+                fontsize=9,
+            )
+
+    bbox_props = dict(
+        boxstyle="round,pad=0.3",
+        facecolor="lightyellow",
+        edgecolor="gray",
+        alpha=0.8,
+    )
+    plt.text(
+        0.02,
+        0.05,
+        print_me_first(),
+        transform=plt.gca().transAxes,
+        fontsize=9,
+        verticalalignment="bottom",
+        bbox=bbox_props,
+    )
+    plt.tight_layout()
+    plt.show()
+
+def makeform(root, fields):
+    entries = {}
+    bg_color = "lightgreen"
+    for field in fields:
+        row = Frame(root, bg=bg_color)
+        lab = Label(
+            row,
+            width=22,
+            text=field,
+            anchor="w",
+            bg=bg_color,
+            font=("Arial", 10, "bold"),
+        )
+        ent = Entry(row)
+        ent.insert(0, "0")
+        if field in (
+            "Monthly Payment:",
+            "Total Interest Paid:",
+            "Total Paid:",
+        ):
+            ent.config(font=("Arial", 14, "bold", "italic"), state="readonly")
+        row.pack(side=TOP, fill=X, padx=5, pady=2)
+        lab.pack(side=LEFT)
+        ent.pack(side=RIGHT, expand=YES, fill=X, padx=5)
+        entries[field] = ent
+    return entries
+
+
+#This sets up and runs the main GUI window
+if __name__ == "__main__":
+    print(print_me_first())
+    root = Tk()
+    root.title("Mortgage Calculator")
+    root.configure(bg="lightgreen")
+
+    ents = makeform(root, fields)
+    root.bind("<Return>", (lambda event, e=ents: calculate(e)))
+
+    #This creates the bottom button and text box row
+    b_frame = Frame(root, bg="lightgreen")
+    b_frame.pack(side=TOP, fill=X, padx=5, pady=5)
+
+    b1 = Button(
+        b_frame,
+        bg="light blue",
+        text="Calculate",
+        command=(lambda e=ents: calculate(e)),
+    )
+    b1.pack(side=LEFT, padx=3, pady=5)
+
+    b2 = Button(b_frame, text="Chart", command=plot_chart)
+    b2.pack(side=LEFT, padx=3, pady=5)
+
+    b3 = Button(b_frame, text="Quit", command=root.quit)
+    b3.pack(side=LEFT, padx=3, pady=5)
+
+    tbox = Text(b_frame, height=4, width=38, font=("Courier", 8), bd=1)
+    tbox.insert(END, print_me_first())
+    tbox.config(state="disabled")
+    tbox.pack(side=LEFT, padx=5, pady=5)
+
+    root.mainloop()
+
+
+
+
+
+
+
+
+
+    
